@@ -22,6 +22,7 @@ import com.silvaramon.cylinders_ctrl.ui.CylinderOcrCaptureScreen
 import com.silvaramon.cylinders_ctrl.ui.LotQrCaptureScreen
 import com.silvaramon.cylinders_ctrl.ui.PendingShipmentDetailScreen
 import com.silvaramon.cylinders_ctrl.ui.PendingShipmentsScreen
+import com.silvaramon.cylinders_ctrl.ui.PermissionGate
 import com.silvaramon.cylinders_ctrl.ui.Screen
 import com.silvaramon.cylinders_ctrl.ui.ShipmentFormScreen
 import com.silvaramon.cylinders_ctrl.ui.theme.CylindersTheme
@@ -32,7 +33,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CylindersTheme {
-                CylindersApp()
+                PermissionGate {
+                    CylindersApp()
+                }
             }
         }
     }

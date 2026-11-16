@@ -27,6 +27,12 @@ class PendingShipmentRepository(context: Context) {
         persist(_shipments.value)
     }
 
+    /** Atualiza o envio de mesmo `id` aplicando [transform]. */
+    suspend fun update(id: String, transform: (PendingShipment) -> PendingShipment) {
+        _shipments.update { list -> list.map { if (it.id == id) transform(it) else it } }
+        persist(_shipments.value)
+    }
+
     private suspend fun persist(list: List<PendingShipment>) = withContext(Dispatchers.IO) {
         val array = JSONArray()
         list.forEach { array.put(it.toJson()) }
@@ -44,9 +50,13 @@ class PendingShipmentRepository(context: Context) {
     private fun PendingShipment.toJson() = JSONObject().apply {
         put("id", id)
         put("clientName", clientName)
+        put("clientEmployeeName", clientEmployeeName)
         put("invoiceNumber", invoiceNumber)
         put("type", type.name)
-        put("createdAt", createdAt)
+        put("dateTime", dateTime)
+        put("latitude", latitude ?: JSONObject.NULL)
+        put("longitude", longitude ?: JSONObject.NULL)
+        put("address", address ?: JSONObject.NULL)
         put("cylinders", JSONArray().apply {
             cylinders.forEach { put(it.toJson()) }
         })
@@ -57,9 +67,16 @@ class PendingShipmentRepository(context: Context) {
         return PendingShipment(
             id = getString("id"),
             clientName = getString("clientName"),
+            clientEmployeeName = optString("clientEmployeeName"),
             invoiceNumber = getString("invoiceNumber"),
             type = ShipmentType.valueOf(getString("type")),
-            createdAt = getLong("createdAt"),
+            // Registros antigos guardavam `createdAt` em millis.
+            dateTime = optString("dateTime").ifBlank {
+                if (has("createdAt")) formatDateTime(getLong("createdAt")) else ""
+            },
+            latitude = if (isNull("latitude")) null else optDouble("latitude"),
+            longitude = if (isNull("longitude")) null else optDouble("longitude"),
+            address = if (isNull("address")) null else optString("address").ifBlank { null },
             cylinders = List(cyl.length()) { i -> Cylinder.fromJson(cyl.getJSONObject(i)) },
         )
     }

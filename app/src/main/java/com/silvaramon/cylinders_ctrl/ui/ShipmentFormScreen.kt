@@ -8,11 +8,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -55,6 +58,16 @@ fun ShipmentFormScreen(
                 value = viewModel.clientName,
                 onValueChange = viewModel::onClientNameChange,
                 label = { Text("Nome do cliente") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = viewModel.clientEmployeeName,
+                onValueChange = viewModel::onClientEmployeeNameChange,
+                label = { Text("Funcionário responsável (cliente)") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 modifier = Modifier.fillMaxWidth(),
@@ -117,13 +130,22 @@ fun ShipmentFormScreen(
                     enabled = viewModel.canFinish,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Finalizar")
+                    if (viewModel.isFinishing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Obtendo localização…")
+                    } else {
+                        Text("Finalizar")
+                    }
                 }
-                if (!viewModel.canFinish) {
+                if (!viewModel.canFinish && !viewModel.isFinishing) {
                     val missingLots = viewModel.cylinders.count { !it.hasLot }
                     Text(
                         buildString {
-                            append("Para finalizar, preencha cliente, número da nota e tipo")
+                            append("Para finalizar, preencha cliente, funcionário responsável, número da nota e tipo")
                             if (missingLots > 0) append(" e capture o lote de $missingLots cilindro(s)")
                             append(".")
                         },

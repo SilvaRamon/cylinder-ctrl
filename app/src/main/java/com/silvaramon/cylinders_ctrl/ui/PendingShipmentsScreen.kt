@@ -18,8 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.silvaramon.cylinders_ctrl.data.PendingShipment
-import java.text.DateFormat
-import java.util.Date
+import java.util.Locale
 
 @Composable
 fun PendingShipmentsScreen(
@@ -46,11 +45,21 @@ fun PendingShipmentsScreen(
                 Column(Modifier.padding(12.dp)) {
                     Text(shipment.clientName, style = MaterialTheme.typography.titleMedium)
                     Text("Nota: ${shipment.invoiceNumber} • ${shipment.type.label}")
+                    Text("Responsável: ${shipment.clientEmployeeName}")
                     Text("Cilindros: ${shipment.cylinders.size}")
                     Text(
-                        formatDate(shipment.createdAt),
+                        shipment.dateTime,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        addressLabel(shipment),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (shipment.isAddressPending) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
                     Row(
                         modifier = Modifier
@@ -73,6 +82,12 @@ fun PendingShipmentsScreen(
     }
 }
 
+private fun addressLabel(shipment: PendingShipment): String = when {
+    !shipment.address.isNullOrBlank() -> shipment.address
+    shipment.isAddressPending -> "pendente (será calculado quando houver internet)"
+    else -> "localização indisponível"
+}
+
 @Composable
 fun PendingShipmentDetailScreen(
     shipment: PendingShipment?,
@@ -91,7 +106,16 @@ fun PendingShipmentDetailScreen(
             Text(shipment.clientName, style = MaterialTheme.typography.headlineSmall)
             Text("Número da nota: ${shipment.invoiceNumber}")
             Text("Tipo: ${shipment.type.label}")
-            Text("Criado em: ${formatDate(shipment.createdAt)}")
+            Text("Funcionário responsável: ${shipment.clientEmployeeName}")
+            Text("Data e hora: ${shipment.dateTime}")
+            Text("Endereço: ${addressLabel(shipment)}")
+            if (shipment.latitude != null && shipment.longitude != null) {
+                Text(
+                    "Coordenadas: %.6f, %.6f".format(Locale.US, shipment.latitude, shipment.longitude),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Text(
                 "Cilindros (${shipment.cylinders.size})",
                 style = MaterialTheme.typography.titleMedium,
@@ -103,6 +127,3 @@ fun PendingShipmentDetailScreen(
         }
     }
 }
-
-private fun formatDate(millis: Long): String =
-    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(millis))
