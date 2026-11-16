@@ -48,13 +48,11 @@ fun PendingShipmentsScreen(
                     Text("Responsável: ${shipment.clientEmployeeName}")
                     Text("Cilindros: ${shipment.cylinders.size}")
                     Text(
-                        shipment.dateTime,
-                        style = MaterialTheme.typography.bodySmall,
+                        "Data e Hora: ${shipment.dateTime}",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         addressLabel(shipment),
-                        style = MaterialTheme.typography.bodySmall,
                         color = if (shipment.isAddressPending) {
                             MaterialTheme.colorScheme.error
                         } else {
@@ -83,8 +81,8 @@ fun PendingShipmentsScreen(
 }
 
 private fun addressLabel(shipment: PendingShipment): String = when {
-    !shipment.address.isNullOrBlank() -> shipment.address
-    shipment.isAddressPending -> "pendente (será calculado quando houver internet)"
+    !shipment.address.isNullOrBlank() -> "Endereço: ${shipment.address}"
+    shipment.isAddressPending -> "Endereço: pendente (será calculado quando houver internet)"
     else -> "localização indisponível"
 }
 
@@ -112,7 +110,6 @@ fun PendingShipmentDetailScreen(
             if (shipment.latitude != null && shipment.longitude != null) {
                 Text(
                     "Coordenadas: %.6f, %.6f".format(Locale.US, shipment.latitude, shipment.longitude),
-                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
