@@ -71,7 +71,7 @@ fun CylindersApp(viewModel: AppViewModel = viewModel()) {
                     Text(
                         when (screen) {
                             Screen.Form -> "Nova nota"
-                            Screen.CaptureOcr -> "Capturar cilindro"
+                            is Screen.CaptureOcr -> "Capturar identificação"
                             is Screen.CaptureLot -> "Capturar lote"
                             Screen.Pending -> "Envios pendentes"
                             is Screen.PendingDetail -> "Detalhes do envio"
@@ -97,8 +97,10 @@ fun CylindersApp(viewModel: AppViewModel = viewModel()) {
         when (screen) {
             Screen.Form -> ShipmentFormScreen(viewModel, contentModifier)
 
-            Screen.CaptureOcr -> CylinderOcrCaptureScreen(
-                onConfirm = { ocr -> if (viewModel.addCylinder(ocr)) viewModel.goBack() },
+            is Screen.CaptureOcr -> CylinderOcrCaptureScreen(
+                onConfirm = { ocr ->
+                    if (viewModel.setIdentification(screen.cylinderId, ocr)) viewModel.goBack()
+                },
                 onCancel = viewModel::goBack,
                 modifier = contentModifier,
             )

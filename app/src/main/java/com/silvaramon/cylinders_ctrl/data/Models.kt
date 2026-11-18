@@ -36,6 +36,9 @@ data class Cylinder(
 ) {
     val hasLot: Boolean get() = !lot.isNullOrBlank()
 
+    /** `true` quando CAP_M3 e N/S já foram capturados via OCR. */
+    val hasIdentification: Boolean get() = capacityM3.isNotBlank() && serialNumber.isNotBlank()
+
     fun toJson(): JSONObject = JSONObject().apply {
         put(KEY_ID, id)
         put(KEY_SHIPMENT_ID, shipmentId ?: "")

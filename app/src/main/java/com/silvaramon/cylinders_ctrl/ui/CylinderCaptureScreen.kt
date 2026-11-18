@@ -120,7 +120,7 @@ fun CylinderOcrCaptureScreen(
                     Button(
                         onClick = { onConfirm(data) },
                         modifier = Modifier.weight(1f),
-                    ) { Text("Adicionar") }
+                    ) { Text("Salvar identificação") }
                 }
             }
         }
@@ -150,7 +150,10 @@ fun LotQrCaptureScreen(
     CameraPermissionGate(onCancel = onCancel, modifier = modifier) {
         Column(Modifier.fillMaxSize()) {
             StepTitle(
-                if (lot == null) "Aponte para o QR Code do lote — N/S ${cylinder.serialNumber}"
+                if (lot == null) {
+                    "Aponte para o QR Code do lote" +
+                        cylinder.serialNumber.ifBlank { null }?.let { " — N/S $it" }.orEmpty()
+                }
                 else "Revise o lote do cilindro"
             )
             val read = lot

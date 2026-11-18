@@ -2,6 +2,8 @@ package com.silvaramon.cylinders_ctrl.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -102,7 +104,7 @@ fun ShipmentFormScreen(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
-                OutlinedButton(onClick = { viewModel.navigate(Screen.CaptureOcr) }) {
+                OutlinedButton(onClick = viewModel::addCylinder) {
                     Text("Adicionar cilindro")
                 }
             }
@@ -120,6 +122,7 @@ fun ShipmentFormScreen(
                 CylinderCard(
                     cylinder = cylinder,
                     onRemove = { viewModel.removeCylinder(cylinder) },
+                    onCaptureIdentification = { viewModel.navigate(Screen.CaptureOcr(cylinder.id)) },
                     onCaptureLot = { viewModel.navigate(Screen.CaptureLot(cylinder.id)) },
                 )
             }
@@ -142,10 +145,12 @@ fun ShipmentFormScreen(
                     }
                 }
                 if (!viewModel.canFinish && !viewModel.isFinishing) {
+                    val missingIds = viewModel.cylinders.count { !it.hasIdentification }
                     val missingLots = viewModel.cylinders.count { !it.hasLot }
                     Text(
                         buildString {
                             append("Para finalizar, preencha cliente, funcionário responsável, número da nota e tipo")
+                            if (missingIds > 0) append(", capture a identificação de $missingIds cilindro(s)")
                             if (missingLots > 0) append(" e capture o lote de $missingLots cilindro(s)")
                             append(".")
                         },
@@ -197,29 +202,48 @@ private fun ShipmentTypeDropdown(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CylinderCard(
     cylinder: Cylinder,
     modifier: Modifier = Modifier,
     onRemove: (() -> Unit)? = null,
+    onCaptureIdentification: (() -> Unit)? = null,
     onCaptureLot: (() -> Unit)? = null,
 ) {
+    val idColor = if (cylinder.hasIdentification) Color.Unspecified else MaterialTheme.colorScheme.error
     Card(modifier = modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
-            Text("N/S: ${cylinder.serialNumber}", style = MaterialTheme.typography.titleSmall)
-            Text("CAP_M3: ${cylinder.capacityM3}", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "N/S: ${cylinder.serialNumber.ifBlank { "pendente" }}",
+                style = MaterialTheme.typography.titleSmall,
+                color = idColor,
+            )
+            Text(
+                "CAP_M3: ${cylinder.capacityM3.ifBlank { "pendente" }}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = idColor,
+            )
             Text(
                 "Lote: ${cylinder.lot ?: "pendente"}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (cylinder.hasLot) Color.Unspecified else MaterialTheme.colorScheme.error,
             )
-            if (onRemove != null || onCaptureLot != null) {
-                Row(
-                    modifier = Modifier.align(Alignment.End),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+            if (onRemove != null || onCaptureIdentification != null || onCaptureLot != null) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 ) {
                     if (onRemove != null) {
                         TextButton(onClick = onRemove) { Text("Remover") }
+                    }
+                    if (onCaptureIdentification != null) {
+                        OutlinedButton(onClick = onCaptureIdentification) {
+                            Text(
+                                if (cylinder.hasIdentification) "Recapturar identificação"
+                                else "Capturar identificação"
+                            )
+                        }
                     }
                     if (onCaptureLot != null) {
                         OutlinedButton(onClick = onCaptureLot) {

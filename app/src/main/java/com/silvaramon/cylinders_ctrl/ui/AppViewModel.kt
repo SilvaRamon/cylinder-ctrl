@@ -26,8 +26,8 @@ import java.util.UUID
 
 sealed interface Screen {
     data object Form : Screen
-    /** 1ª captura: OCR da identificação (CAP_M3 + N/S). */
-    data object CaptureOcr : Screen
+    /** 1ª captura: OCR da identificação (CAP_M3 + N/S) do cilindro informado. */
+    data class CaptureOcr(val cylinderId: String) : Screen
 
     /** 2ª captura: QR Code com o lote do cilindro informado. */
     data class CaptureLot(val cylinderId: String) : Screen
@@ -95,7 +95,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val canFinish: Boolean
         get() = !isFinishing && clientName.isNotBlank() && clientEmployeeName.isNotBlank() &&
             invoiceNumber.isNotBlank() &&
-            shipmentType != null && cylinders.isNotEmpty() && cylinders.all { it.hasLot }
+            shipmentType != null && cylinders.isNotEmpty() &&
+            cylinders.all { it.hasIdentification && it.hasLot }
 
     fun onClientNameChange(value: String) {
         clientName = value
@@ -113,15 +114,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         shipmentType = value
     }
 
-    /** Adiciona o cilindro (sem lote) apenas se CAP_M3 e N/S estiverem presentes. */
-    fun addCylinder(ocr: CylinderOcrData): Boolean {
-        if (ocr.capacityM3.isBlank() || ocr.serialNumber.isBlank()) return false
+    /** Adiciona um novo cilindro vazio; identificação e lote são capturados depois pelo item. */
+    fun addCylinder() {
         cylinders.add(
             Cylinder(
                 id = UUID.randomUUID().toString(),
-                capacityM3 = ocr.capacityM3,
-                serialNumber = ocr.serialNumber,
+                capacityM3 = "",
+                serialNumber = "",
             )
+        )
+    }
+
+    /** Grava CAP_M3 e N/S (lidos via OCR) no cilindro indicado, se ambos estiverem presentes. */
+    fun setIdentification(cylinderId: String, ocr: CylinderOcrData): Boolean {
+        val index = cylinders.indexOfFirst { it.id == cylinderId }
+        if (index < 0 || ocr.capacityM3.isBlank() || ocr.serialNumber.isBlank()) return false
+        cylinders[index] = cylinders[index].copy(
+            capacityM3 = ocr.capacityM3,
+            serialNumber = ocr.serialNumber,
         )
         return true
     }
