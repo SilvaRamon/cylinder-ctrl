@@ -2,6 +2,8 @@ package com.silvaramon.cylinders_ctrl.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -25,7 +29,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import com.silvaramon.cylinders_ctrl.R
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -102,7 +107,7 @@ fun ShipmentFormScreen(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
-                OutlinedButton(onClick = { viewModel.navigate(Screen.CaptureOcr) }) {
+                OutlinedButton(onClick = viewModel::addCylinder) {
                     Text("Adicionar cilindro")
                 }
             }
@@ -120,6 +125,7 @@ fun ShipmentFormScreen(
                 CylinderCard(
                     cylinder = cylinder,
                     onRemove = { viewModel.removeCylinder(cylinder) },
+                    onCaptureIdentification = { viewModel.navigate(Screen.CaptureOcr(cylinder.id)) },
                     onCaptureLot = { viewModel.navigate(Screen.CaptureLot(cylinder.id)) },
                 )
             }
@@ -142,10 +148,12 @@ fun ShipmentFormScreen(
                     }
                 }
                 if (!viewModel.canFinish && !viewModel.isFinishing) {
+                    val missingIds = viewModel.cylinders.count { !it.hasIdentification }
                     val missingLots = viewModel.cylinders.count { !it.hasLot }
                     Text(
                         buildString {
                             append("Para finalizar, preencha cliente, funcionário responsável, número da nota e tipo")
+                            if (missingIds > 0) append(", capture a identificação de $missingIds cilindro(s)")
                             if (missingLots > 0) append(" e capture o lote de $missingLots cilindro(s)")
                             append(".")
                         },
@@ -197,37 +205,69 @@ private fun ShipmentTypeDropdown(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CylinderCard(
     cylinder: Cylinder,
     modifier: Modifier = Modifier,
     onRemove: (() -> Unit)? = null,
+    onCaptureIdentification: (() -> Unit)? = null,
     onCaptureLot: (() -> Unit)? = null,
 ) {
+    val idColor = if (cylinder.hasIdentification) Color.Unspecified else MaterialTheme.colorScheme.error
     Card(modifier = modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
-            Text("N/S: ${cylinder.serialNumber}", style = MaterialTheme.typography.titleSmall)
-            Text("CAP_M3: ${cylinder.capacityM3}", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "N/S: ${cylinder.serialNumber.ifBlank { "pendente" }}",
+                style = MaterialTheme.typography.titleSmall,
+                color = idColor,
+            )
+            Text(
+                "CAP_M3: ${cylinder.capacityM3.ifBlank { "pendente" }}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = idColor,
+            )
             Text(
                 "Lote: ${cylinder.lot ?: "pendente"}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (cylinder.hasLot) Color.Unspecified else MaterialTheme.colorScheme.error,
             )
-            if (onRemove != null || onCaptureLot != null) {
-                Row(
-                    modifier = Modifier.align(Alignment.End),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+            if (onRemove != null || onCaptureIdentification != null || onCaptureLot != null) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 ) {
                     if (onRemove != null) {
-                        TextButton(onClick = onRemove) { Text("Remover") }
+                        OutlinedButton(onClick = onRemove) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_delete),
+                                contentDescription = "Remover",
+                                modifier = Modifier.size(ButtonDefaults.IconSize),
+                            )
+                        }
+                    }
+                    if (onCaptureIdentification != null) {
+                        CameraButton(text = "Identificação", onClick = onCaptureIdentification)
                     }
                     if (onCaptureLot != null) {
-                        OutlinedButton(onClick = onCaptureLot) {
-                            Text(if (cylinder.hasLot) "Recapturar lote" else "Capturar lote")
-                        }
+                        CameraButton(text = "Lote", onClick = onCaptureLot)
                     }
                 }
             }
         }
+    }
+}
+
+/** Botão de captura: ícone de câmera seguido do texto. */
+@Composable
+private fun CameraButton(text: String, onClick: () -> Unit) {
+    OutlinedButton(onClick = onClick) {
+        Icon(
+            painter = painterResource(R.drawable.ic_photo_camera),
+            contentDescription = null,
+            modifier = Modifier.size(ButtonDefaults.IconSize),
+        )
+        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+        Text(text)
     }
 }
