@@ -18,9 +18,10 @@ enum class ShipmentType(val label: String) {
 
 /**
  * Dados de um cilindro capturado. Serializado no padrão:
- * `{"id": "...", "cap_m3": "10.0", "n_s": "ABC123", "lote": "..."}`
- * (`lote` fica `null` até a segunda captura via QR Code).
+ * `{"id": "...", "id_envio": "...", "cap_m3": "10.0", "n_s": "ABC123", "lote": "..."}`
+ * (`lote` fica `null` até a segunda captura via QR Code; `id_envio` é preenchido ao finalizar).
  *
+ * @param shipmentId id do envio, gerado ao clicar em Finalizar; `null` antes disso.
  * @param capacityM3 capacidade (CAP_M3) lida via OCR.
  * @param serialNumber número de identificação (N/S) lido via OCR.
  * @param lot lote lido do QR Code; `null` enquanto não capturado.
@@ -30,11 +31,13 @@ data class Cylinder(
     val capacityM3: String,
     val serialNumber: String,
     val lot: String? = null,
+    val shipmentId: String? = null,
 ) {
     val hasLot: Boolean get() = !lot.isNullOrBlank()
 
     fun toJson(): JSONObject = JSONObject().apply {
         put(KEY_ID, id)
+        put(KEY_SHIPMENT_ID, shipmentId ?: "")
         put(KEY_CAP_M3, capacityM3)
         put(KEY_SERIAL, serialNumber)
         put(KEY_LOT, lot ?: "")
@@ -42,6 +45,7 @@ data class Cylinder(
 
     companion object {
         private const val KEY_ID = "id"
+        private const val KEY_SHIPMENT_ID = "id_envio"
         private const val KEY_CAP_M3 = "cap_m3"
         private const val KEY_SERIAL = "n_s"
         private const val KEY_LOT = "lote"
@@ -51,6 +55,7 @@ data class Cylinder(
             capacityM3 = json.optString(KEY_CAP_M3),
             serialNumber = json.optString(KEY_SERIAL),
             lot = if (json.isNull(KEY_LOT)) "" else json.optString(KEY_LOT).ifBlank { "" },
+            shipmentId = json.optString(KEY_SHIPMENT_ID).ifBlank { null },
         )
     }
 }
@@ -60,6 +65,7 @@ data class Cylinder(
  * @param dateTime data e hora da finalização, no formato `dd/MM/yyyy HH:mm:ss`.
  * @param latitude/longitude posição capturada ao finalizar; `null` se indisponível.
  * @param address endereço (geocodificação reversa) da posição; `null` se indisponível.
+ * @param deviceId id do aparelho que finalizou o envio (`ANDROID_ID`).
  */
 data class PendingShipment(
     val id: String,
@@ -72,6 +78,7 @@ data class PendingShipment(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val address: String? = null,
+    val deviceId: String = "",
 ) {
     val hasLocation: Boolean get() = latitude != null && longitude != null
 

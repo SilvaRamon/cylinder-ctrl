@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.silvaramon.cylinders_ctrl.data.Cylinder
 import com.silvaramon.cylinders_ctrl.data.CylinderOcrData
+import com.silvaramon.cylinders_ctrl.data.DeviceInfo
 import com.silvaramon.cylinders_ctrl.data.LocationProvider
 import com.silvaramon.cylinders_ctrl.data.NetworkMonitor
 import com.silvaramon.cylinders_ctrl.data.formatDateTime
@@ -131,6 +132,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val type = shipmentType ?: return
         if (!canFinish) return
         val dateTime = formatDateTime()
+        // Id do envio, gerado ao clicar em Finalizar e gravado também no JSON de cada cilindro.
+        val shipmentId = UUID.randomUUID().toString()
         isFinishing = true
         viewModelScope.launch {
             try {
@@ -144,16 +147,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     null
                 }
                 val shipment = PendingShipment(
-                    id = UUID.randomUUID().toString(),
+                    id = shipmentId,
                     clientName = clientName.trim(),
                     clientEmployeeName = clientEmployeeName.trim(),
                     invoiceNumber = invoiceNumber,
                     type = type,
-                    cylinders = cylinders.toList(),
+                    cylinders = cylinders.map { it.copy(shipmentId = shipmentId) },
                     dateTime = dateTime,
                     latitude = location?.latitude,
                     longitude = location?.longitude,
                     address = address,
+                    deviceId = DeviceInfo.deviceId(getApplication()),
                 )
                 repository.add(shipment)
                 clientName = ""

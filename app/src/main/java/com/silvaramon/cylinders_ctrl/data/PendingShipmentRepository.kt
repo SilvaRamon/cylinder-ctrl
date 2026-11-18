@@ -57,6 +57,7 @@ class PendingShipmentRepository(context: Context) {
         put("latitude", latitude ?: JSONObject.NULL)
         put("longitude", longitude ?: JSONObject.NULL)
         put("address", address ?: JSONObject.NULL)
+        put("deviceId", deviceId)
         put("cylinders", JSONArray().apply {
             cylinders.forEach { put(it.toJson()) }
         })
@@ -64,8 +65,9 @@ class PendingShipmentRepository(context: Context) {
 
     private fun JSONObject.toShipment(): PendingShipment {
         val cyl = getJSONArray("cylinders")
+        val shipmentId = getString("id")
         return PendingShipment(
-            id = getString("id"),
+            id = shipmentId,
             clientName = getString("clientName"),
             clientEmployeeName = optString("clientEmployeeName"),
             invoiceNumber = getString("invoiceNumber"),
@@ -77,7 +79,13 @@ class PendingShipmentRepository(context: Context) {
             latitude = if (isNull("latitude")) null else optDouble("latitude"),
             longitude = if (isNull("longitude")) null else optDouble("longitude"),
             address = if (isNull("address")) null else optString("address").ifBlank { null },
-            cylinders = List(cyl.length()) { i -> Cylinder.fromJson(cyl.getJSONObject(i)) },
+            deviceId = optString("deviceId"),
+            // Registros antigos não tinham `id_envio` nos cilindros.
+            cylinders = List(cyl.length()) { i ->
+                Cylinder.fromJson(cyl.getJSONObject(i)).let {
+                    if (it.shipmentId == null) it.copy(shipmentId = shipmentId) else it
+                }
+            },
         )
     }
 

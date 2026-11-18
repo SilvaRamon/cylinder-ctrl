@@ -263,7 +263,10 @@ private fun ColumnScope.JsonPreview(cylinder: Cylinder) {
     ) {
         Text("Dados do cilindro (JSON):", style = MaterialTheme.typography.labelLarge)
         Text(
-            cylinder.toJson().apply { remove("id") }.toString(2),
+            cylinder.toJson().apply {
+                remove("id")
+                remove("id_envio") // só é gerado ao finalizar
+            }.toString(2),
             fontFamily = FontFamily.Monospace,
             modifier = Modifier
                 .fillMaxWidth()
