@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -27,7 +29,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import com.silvaramon.cylinders_ctrl.R
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -235,23 +238,36 @@ fun CylinderCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 ) {
                     if (onRemove != null) {
-                        TextButton(onClick = onRemove) { Text("Remover") }
-                    }
-                    if (onCaptureIdentification != null) {
-                        OutlinedButton(onClick = onCaptureIdentification) {
-                            Text(
-                                if (cylinder.hasIdentification) "Recapturar identificação"
-                                else "Capturar identificação"
+                        OutlinedButton(onClick = onRemove) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_delete),
+                                contentDescription = "Remover",
+                                modifier = Modifier.size(ButtonDefaults.IconSize),
                             )
                         }
                     }
+                    if (onCaptureIdentification != null) {
+                        CameraButton(text = "Identificação", onClick = onCaptureIdentification)
+                    }
                     if (onCaptureLot != null) {
-                        OutlinedButton(onClick = onCaptureLot) {
-                            Text(if (cylinder.hasLot) "Recapturar lote" else "Capturar lote")
-                        }
+                        CameraButton(text = "Lote", onClick = onCaptureLot)
                     }
                 }
             }
         }
+    }
+}
+
+/** Botão de captura: ícone de câmera seguido do texto. */
+@Composable
+private fun CameraButton(text: String, onClick: () -> Unit) {
+    OutlinedButton(onClick = onClick) {
+        Icon(
+            painter = painterResource(R.drawable.ic_photo_camera),
+            contentDescription = null,
+            modifier = Modifier.size(ButtonDefaults.IconSize),
+        )
+        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+        Text(text)
     }
 }
