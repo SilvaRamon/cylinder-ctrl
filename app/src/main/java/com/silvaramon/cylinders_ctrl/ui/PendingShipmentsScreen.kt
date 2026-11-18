@@ -7,10 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -23,6 +27,7 @@ import java.util.Locale
 @Composable
 fun PendingShipmentsScreen(
     shipments: List<PendingShipment>,
+    sendingIds: List<String>,
     onSend: (PendingShipment) -> Unit,
     onDetails: (PendingShipment) -> Unit,
     modifier: Modifier = Modifier,
@@ -69,10 +74,23 @@ fun PendingShipmentsScreen(
                             onClick = { onDetails(shipment) },
                             modifier = Modifier.weight(1f),
                         ) { Text("Detalhes") }
+                        val isSending = shipment.id in sendingIds
                         Button(
                             onClick = { onSend(shipment) },
+                            enabled = !isSending,
                             modifier = Modifier.weight(1f),
-                        ) { Text("Enviar") }
+                        ) {
+                            if (isSending) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text("Enviando…")
+                            } else {
+                                Text("Enviar")
+                            }
+                        }
                     }
                 }
             }

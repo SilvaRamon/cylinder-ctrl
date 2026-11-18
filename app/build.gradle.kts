@@ -1,6 +1,25 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+}
+
+// Dados da conta de serviço lidos do local.properties (fora do controle de versão).
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use(::load)
+}
+
+/** Lê a chave do local.properties e devolve como literal Java para o BuildConfig. */
+fun localPropertyLiteral(key: String): String {
+    val value = localProperties.getProperty(key).orEmpty()
+    val escaped = value
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\r", "")
+        .replace("\n", "\\n")
+    return "\"$escaped\""
 }
 
 android {
@@ -17,6 +36,33 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        listOf(
+            "GSA_PROJECT_ID" to "gsa.project_id",
+            "GSA_PRIVATE_KEY_ID" to "gsa.private_key_id",
+            "GSA_PRIVATE_KEY" to "gsa.private_key",
+            "GSA_CLIENT_EMAIL" to "gsa.client_email",
+            "GSA_CLIENT_ID" to "gsa.client_id",
+            "GSA_CLIENT_X509_CERT_URL" to "gsa.client_x509_cert_url",
+        ).forEach { (field, key) ->
+            buildConfigField("String", field, localPropertyLiteral(key))
+        }
+        listOf("gsa.private_key", "gsa.client_email")
+            .filter { localProperties.getProperty(it).isNullOrBlank() }
+            .takeIf { it.isNotEmpty() }
+            ?.let { missing ->
+                logger.warn(
+                    "w: Credenciais da conta de serviço ausentes no local.properties: " +
+                        "${missing.joinToString()}. O envio para o Google Sheets vai falhar."
+                )
+            }
+
+        // Planilha de destino (abas "entregas" e "coletas").
+        buildConfigField(
+            "String",
+            "SHEETS_SPREADSHEET_ID",
+            "\"1-jbPTgq0mCmimqxnr_K-_lkc15rcfKmdC3sSKqJTDX8\"",
+        )
     }
 
     buildTypes {
@@ -33,6 +79,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

@@ -11,9 +11,10 @@ const val DATE_TIME_PATTERN = "dd/MM/yyyy HH:mm:ss"
 fun formatDateTime(millis: Long = System.currentTimeMillis()): String =
     SimpleDateFormat(DATE_TIME_PATTERN, Locale.getDefault()).format(Date(millis))
 
-enum class ShipmentType(val label: String) {
-    DELIVERY("Entrega"),
-    PICKUP("Coleta"),
+/** @param sheetName aba da planilha onde os envios deste tipo são inseridos. */
+enum class ShipmentType(val label: String, val sheetName: String) {
+    DELIVERY("Entrega", "entregas"),
+    PICKUP("Coleta", "coletas"),
 }
 
 /**
@@ -84,4 +85,35 @@ data class PendingShipment(
 
     /** Tem coordenadas, mas o endereço ainda não pôde ser calculado (ex.: sem internet). */
     val isAddressPending: Boolean get() = hasLocation && address.isNullOrBlank()
+
+    /**
+     * Linhas para a planilha: uma por cilindro, na ordem de [SHEET_COLUMNS].
+     */
+    fun toSheetRows(): List<List<Any?>> = cylinders.map { cylinder ->
+        listOf(
+            id,
+            dateTime,
+            clientName,
+            clientEmployeeName,
+            invoiceNumber,
+            type.label,
+            cylinder.id,
+            cylinder.serialNumber,
+            cylinder.capacityM3,
+            cylinder.lot.orEmpty(),
+            latitude,
+            longitude,
+            address.orEmpty(),
+            deviceId,
+        )
+    }
+
+    companion object {
+        /** Cabeçalho sugerido para as abas `entregas` e `coletas`. */
+        val SHEET_COLUMNS = listOf(
+            "id_envio", "data_hora", "cliente", "funcionario_responsavel", "numero_nota",
+            "tipo", "id_cilindro", "n_s", "cap_m3", "lote", "latitude", "longitude",
+            "endereco", "id_aparelho",
+        )
+    }
 }

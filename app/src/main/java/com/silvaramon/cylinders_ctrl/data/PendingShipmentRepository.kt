@@ -27,6 +27,11 @@ class PendingShipmentRepository(context: Context) {
         persist(_shipments.value)
     }
 
+    suspend fun remove(id: String) {
+        _shipments.update { list -> list.filterNot { it.id == id } }
+        persist(_shipments.value)
+    }
+
     /** Atualiza o envio de mesmo `id` aplicando [transform]. */
     suspend fun update(id: String, transform: (PendingShipment) -> PendingShipment) {
         _shipments.update { list -> list.map { if (it.id == id) transform(it) else it } }

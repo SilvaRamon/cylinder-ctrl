@@ -10,12 +10,14 @@ import androidx.lifecycle.viewModelScope
 import com.silvaramon.cylinders_ctrl.data.Cylinder
 import com.silvaramon.cylinders_ctrl.data.CylinderOcrData
 import com.silvaramon.cylinders_ctrl.data.DeviceInfo
+import com.silvaramon.cylinders_ctrl.data.GoogleSheetsClient
 import com.silvaramon.cylinders_ctrl.data.LocationProvider
 import com.silvaramon.cylinders_ctrl.data.NetworkMonitor
 import com.silvaramon.cylinders_ctrl.data.formatDateTime
 import com.silvaramon.cylinders_ctrl.data.PendingShipment
 import com.silvaramon.cylinders_ctrl.data.PendingShipmentRepository
 import com.silvaramon.cylinders_ctrl.data.ShipmentType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -39,7 +41,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val locationProvider = LocationProvider(application)
     private val networkMonitor = NetworkMonitor(application)
     private val addressResolutionMutex = Mutex()
+    private val sheetsClient = GoogleSheetsClient()
     val pendingShipments = repository.shipments
+
+    /** Ids dos envios sendo enviados à planilha no momento. */
+    val sendingShipmentIds = mutableStateListOf<String>()
+
+    /** Mensagem para exibir ao usuário (Snackbar); consumida via [onUserMessageShown]. */
+    var userMessage by mutableStateOf<String?>(null)
+        private set
+
+    fun onUserMessageShown() {
+        userMessage = null
+    }
 
     init {
         // Sempre que a internet voltar, calcula os endereços que ficaram pendentes.
@@ -187,12 +201,33 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
     }
 
+    /**
+     * Envia o registro para a aba da planilha correspondente ao tipo (entregas/coletas).
+     * Em caso de sucesso remove dos pendentes; em caso de falha, mantém na lista.
+     */
     fun send(shipment: PendingShipment) {
+        if (shipment.id in sendingShipmentIds) return
+        if (!networkMonitor.isOnline()) {
+            userMessage = "Sem conexão com a internet. O envio permanece pendente."
+            return
+        }
+        sendingShipmentIds += shipment.id
         viewModelScope.launch {
-            // Garante o endereço antes do envio, caso tenha sido salvo offline.
-            if (shipment.isAddressPending) resolvePendingAddresses()
-            // TODO: implementar o envio da versão atualizada (com endereço, se resolvido):
-            // repository.shipments.value.firstOrNull { it.id == shipment.id }
+            try {
+                // Garante o endereço antes do envio, caso tenha sido salvo offline.
+                if (shipment.isAddressPending) resolvePendingAddresses()
+                val current = repository.shipments.value.firstOrNull { it.id == shipment.id }
+                    ?: return@launch
+                sheetsClient.appendRows(current.type.sheetName, current.toSheetRows())
+                repository.remove(current.id)
+                userMessage = "Nota ${current.invoiceNumber} enviada para \"${current.type.sheetName}\"."
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                userMessage = "Falha ao enviar nota ${shipment.invoiceNumber}: ${e.message}"
+            } finally {
+                sendingShipmentIds -= shipment.id
+            }
         }
     }
 }
