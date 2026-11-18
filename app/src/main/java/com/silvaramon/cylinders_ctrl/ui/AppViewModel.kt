@@ -125,22 +125,38 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    /** Grava CAP_M3 e N/S (lidos via OCR) no cilindro indicado, se ambos estiverem presentes. */
+    /**
+     * Grava CAP_M3 e N/S (lidos via OCR) no cilindro indicado, se ambos estiverem presentes.
+     * Rejeita (e avisa o usuário) se outro cilindro da lista já tiver o mesmo N/S.
+     */
     fun setIdentification(cylinderId: String, ocr: CylinderOcrData): Boolean {
         val index = cylinders.indexOfFirst { it.id == cylinderId }
         if (index < 0 || ocr.capacityM3.isBlank() || ocr.serialNumber.isBlank()) return false
+        val serial = ocr.serialNumber.trim()
+        if (cylinders.any { it.id != cylinderId && it.serialNumber.trim().equals(serial, ignoreCase = true) }) {
+            userMessage = "Já existe um cilindro com o N/S $serial na lista."
+            return false
+        }
         cylinders[index] = cylinders[index].copy(
             capacityM3 = ocr.capacityM3,
-            serialNumber = ocr.serialNumber,
+            serialNumber = serial,
         )
         return true
     }
 
-    /** Grava o lote (string lida do QR Code) no cilindro indicado. */
+    /**
+     * Grava o lote (string lida do QR Code) no cilindro indicado.
+     * Rejeita (e avisa o usuário) se outro cilindro da lista já tiver o mesmo lote.
+     */
     fun setLot(cylinderId: String, lot: String): Boolean {
         val index = cylinders.indexOfFirst { it.id == cylinderId }
         if (index < 0 || lot.isBlank()) return false
-        cylinders[index] = cylinders[index].copy(lot = lot.trim())
+        val trimmed = lot.trim()
+        if (cylinders.any { it.id != cylinderId && it.lot?.trim().equals(trimmed, ignoreCase = true) }) {
+            userMessage = "Já existe um cilindro com o lote $trimmed na lista."
+            return false
+        }
+        cylinders[index] = cylinders[index].copy(lot = trimmed)
         return true
     }
 
