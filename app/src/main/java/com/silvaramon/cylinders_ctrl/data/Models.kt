@@ -97,7 +97,6 @@ data class PendingShipment(
             clientEmployeeName,
             invoiceNumber,
             type.label,
-            cylinder.id,
             cylinder.serialNumber,
             cylinder.capacityM3,
             cylinder.lot.orEmpty(),
@@ -112,7 +111,7 @@ data class PendingShipment(
         /** Cabeçalho sugerido para as abas `entregas` e `coletas`. */
         val SHEET_COLUMNS = listOf(
             "id_envio", "data_hora", "cliente", "funcionario_responsavel", "numero_nota",
-            "tipo", "id_cilindro", "n_s", "cap_m3", "lote", "latitude", "longitude",
+            "tipo", "n_s", "cap_m3", "lote", "latitude", "longitude",
             "endereco", "id_aparelho",
         )
     }
